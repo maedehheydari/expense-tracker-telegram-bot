@@ -232,9 +232,9 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     for user_id, username in members:
         # Add a selection icon to selected members
         if user_id in selected_members:
-            button_text = f"🔵 {username}"  # Blue circle for selected members
+            button_text = f"🔘 {username}" 
         else:
-            button_text = f"⚪️ {username}"  # White circle for unselected members
+            button_text = f"{username}" 
             
         callback_data = f"{callback_prefix}{user_id}"
         keyboard.add(InlineKeyboardButton(button_text, callback_data=callback_data))
