@@ -276,8 +276,9 @@ def add_member_to_expense(call):
     selected_member_id = int(call.data.split("_")[-1])
     
     # Initialize members list if it doesn't exist
-    if 'members' not in expense_cache.get(user_id, {}):
-        expense_cache[user_id] = expense_cache.get(user_id, {})
+    if user_id not in expense_cache:
+        expense_cache[user_id] = {'chat_id': call.message.chat.id, 'members': []}
+    elif 'members' not in expense_cache[user_id]:
         expense_cache[user_id]['members'] = []
     
     members = expense_cache[user_id]['members']
@@ -285,10 +286,10 @@ def add_member_to_expense(call):
     # Toggle selection - remove if already selected, add if not
     if selected_member_id in members:
         members.remove(selected_member_id)
-        bot.answer_callback_query(call.id, "Member removed.")
+        bot.answer_callback_query(call.id, "Member removed")
     else:
         members.append(selected_member_id)
-        bot.answer_callback_query(call.id, "Member added.")
+        bot.answer_callback_query(call.id, "Member added")
     
     # Update the message with updated keyboard showing selections
     keyboard = get_member_keyboard(call.message.chat.id, "select_member_", members)
