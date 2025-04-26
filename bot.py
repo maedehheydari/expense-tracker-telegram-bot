@@ -7,23 +7,14 @@ from telebot import apihelper
 from datetime import datetime
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Load the bot token from the environment variable
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 
-# Initialize logging
 logging.basicConfig(level=logging.INFO)
 
-# Initialize the bot
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# Remove or comment out the proxy setup if not needed
-# apihelper.proxy = {
-#     'http': 'http://21.175.8.16:8080',
-#     'https': 'http://21.175.8.16:8080'
-# }
 
 # Database setup
 conn = sqlite3.connect('expenses.db', check_same_thread=False)
@@ -67,9 +58,8 @@ cursor.execute('''
 
 conn.commit()
 
-# State management
-user_states = {}  # {user_id: state}
-expense_cache = {}  # Temporary storage for expense details during creation
+user_states = {}
+expense_cache = {}
 
 # Start message when bot is added to a group or started
 @bot.message_handler(commands=['start'])
@@ -127,7 +117,7 @@ def handle_callback(call):
     data = call.data
 
     if data == "add_expense":
-        start_add_expense(call)  # Pass the call object
+        start_add_expense(call)
     elif data == "view_balance":
         show_balances(chat_id)
     elif data == "expense_history":
@@ -184,7 +174,7 @@ def start_add_expense(message_or_call):
         message = call.message
         user_id = call.from_user.id
     else:
-        return  # Invalid type
+        return
 
     chat_id = message.chat.id
     user_states[user_id] = 'awaiting_expense_details'
@@ -230,7 +220,6 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     keyboard = InlineKeyboardMarkup()
     
     for user_id, username in members:
-        # Add a selection icon to selected members
         if user_id in selected_members:
             button_text = f"🔘 {username}" 
         else:
@@ -239,7 +228,6 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
         callback_data = f"{callback_prefix}{user_id}"
         keyboard.add(InlineKeyboardButton(button_text, callback_data=callback_data))
     
-    # Add 'Done' button if selecting members
     if callback_prefix == "select_member_":
         keyboard.add(InlineKeyboardButton("✅ Done", callback_data="expense_done"))
     
@@ -250,13 +238,11 @@ def handle_payer_selection(call):
     user_id = call.from_user.id
     selected_user_id = int(call.data.split("_")[-1])
     
-    # Initialize the expense cache if needed
     if user_id not in expense_cache:
         expense_cache[user_id] = {'chat_id': call.message.chat.id}
     
     expense_cache[user_id]['payer_id'] = selected_user_id
     
-    # Initialize empty members list if it doesn't exist
     if 'members' not in expense_cache[user_id]:
         expense_cache[user_id]['members'] = []
     
@@ -275,7 +261,6 @@ def add_member_to_expense(call):
     user_id = call.from_user.id
     selected_member_id = int(call.data.split("_")[-1])
     
-    # Initialize members list if it doesn't exist
     if user_id not in expense_cache:
         expense_cache[user_id] = {'chat_id': call.message.chat.id, 'members': []}
     elif 'members' not in expense_cache[user_id]:
@@ -283,7 +268,6 @@ def add_member_to_expense(call):
     
     members = expense_cache[user_id]['members']
     
-    # Toggle selection - remove if already selected, add if not
     if selected_member_id in members:
         members.remove(selected_member_id)
         bot.answer_callback_query(call.id, "Member removed")
@@ -291,7 +275,6 @@ def add_member_to_expense(call):
         members.append(selected_member_id)
         bot.answer_callback_query(call.id, "Member added")
     
-    # Update the message with updated keyboard showing selections
     keyboard = get_member_keyboard(call.message.chat.id, "select_member_", members)
     bot.edit_message_reply_markup(
         chat_id=call.message.chat.id,
@@ -335,7 +318,6 @@ def finalize_expense(call):
         )
     else:
         bot.send_message(call.message.chat.id, "❌ No members selected. Expense not added.")
-    # Clear user state and cache
     user_states.pop(user_id, None)
     expense_cache.pop(user_id, None)
 
@@ -350,14 +332,12 @@ def show_balances(chat_id):
 
 # Retrieve current balances for each member
 def get_balances(chat_id):
-    # Initialize balances
     cursor.execute('SELECT user_id, username FROM members WHERE chat_id = ?', (chat_id,))
     members = cursor.fetchall()
     balances = {user_id: 0.0 for user_id, _ in members}
 
     cursor.execute('SELECT * FROM expenses WHERE chat_id = ?', (chat_id,))
     expenses = cursor.fetchall()
-    # expense schema: (id, chat_id, name, amount, payer_id, date)
     for expense in expenses:
         expense_id = expense[0]
         amount = expense[3]
@@ -399,7 +379,6 @@ def show_expense_history(chat_id):
 
 # Edit expense (placeholder for functionality)
 def edit_expense(call):
-    # Implement edit functionality here if needed
     bot.answer_callback_query(call.id, "Edit functionality is under development.")
 
 # Delete expense
@@ -411,7 +390,6 @@ def delete_expense(call):
     bot.answer_callback_query(call.id, "Expense deleted.")
     bot.send_message(call.message.chat.id, "✅ Expense has been deleted.", reply_markup=get_main_menu())
 
-# Helper function to get username
 def get_username(user_id, chat_id):
     cursor.execute('SELECT username FROM members WHERE user_id = ? AND chat_id = ?', (user_id, chat_id))
     result = cursor.fetchone()
@@ -433,7 +411,7 @@ def add_member_to_group(message):
         conn.commit()
         logging.info(f"Added user {username} to group {chat_id}")
 
-# Show transactions (the minimal set of transactions to settle balances)
+# Show transactions
 def show_transactions(chat_id):
     balances = get_balances(chat_id)
     transactions = calculate_optimal_transactions(balances)
@@ -448,15 +426,6 @@ def show_transactions(chat_id):
     bot.send_message(chat_id, message, parse_mode="Markdown", reply_markup=get_main_menu())
 
 def calculate_optimal_transactions(balances):
-    """
-    Calculate a minimal set of transactions that settle all debts using a greedy approach.
-    Steps:
-    1. Separate members into two lists: those who owe money (negative balance) and those who are owed money (positive balance).
-    2. Sort them if needed (though not strictly required).
-    3. Iteratively match the largest debtor with the largest creditor, settle as much as possible in one transaction.
-    4. Remove or update their balances as they reach zero.
-    5. Repeat until all are settled.
-    """
     debtors = []
     creditors = []
 
@@ -466,33 +435,26 @@ def calculate_optimal_transactions(balances):
         elif balance > 0:
             creditors.append((user_id, balance))
 
-    # Sort (not strictly necessary, but can help in some cases)
     debtors.sort(key=lambda x: x[1], reverse=True)
     creditors.sort(key=lambda x: x[1], reverse=True)
 
     transactions = []
     i, j = 0, 0
-    # Match debtors and creditors
     while i < len(debtors) and j < len(creditors):
         debtor, debt_amount = debtors[i]
         creditor, credit_amount = creditors[j]
 
-        # The amount to be settled is the minimum of the two
         settled_amount = min(debt_amount, credit_amount)
         transactions.append((debtor, creditor, settled_amount))
 
-        # Update the amounts
         debt_amount -= settled_amount
         credit_amount -= settled_amount
 
-        # Update lists
         debtors[i] = (debtor, debt_amount)
         creditors[j] = (creditor, credit_amount)
 
-        # If debtor is fully settled
         if debtors[i][1] == 0:
             i += 1
-        # If creditor is fully settled
         if creditors[j][1] == 0:
             j += 1
 
@@ -501,14 +463,6 @@ def calculate_optimal_transactions(balances):
 @bot.message_handler(func=lambda message: True)
 def get_chat_id(message):
     logging.info("Chat ID: %s", message.chat.id)
-
-# @bot.message_handler(func=lambda message: True)
-# def chat_migration_handler(message):
-#     # old_id = message.chat.id
-#     # new_id = message.migrate_to_chat_id
-#     cursor.execute('UPDATE groups SET chat_id = ? WHERE chat_id = ?', (message.chat.id, old_id))
-#     conn.commit()
-#     logging.info(f"Updated chat_id from {old_id} to {new_id}")
 
 # Start the bot with infinity polling
 if __name__ == '__main__':
