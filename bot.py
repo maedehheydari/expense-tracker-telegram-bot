@@ -181,7 +181,7 @@ def start_add_expense(message_or_call):
     expense_cache[user_id] = {'chat_id': chat_id}
     bot.send_message(
         chat_id,
-        f"📝 {get_username(user_id, chat_id)}, please enter the expense details in the following format:\n\n"
+        f"📝 Please enter the expense details in the following format:\n\n"
         f"*Name*, *Amount*\n\n"
         f"Example:\nDinner, 100",
         parse_mode="Markdown"
