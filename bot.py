@@ -100,7 +100,7 @@ def get_main_menu():
         InlineKeyboardButton("➕ Add Expense", callback_data="add_expense"),
         InlineKeyboardButton("📊 View Balance", callback_data="view_balance"),
         InlineKeyboardButton("📜 Expense History", callback_data="expense_history"),
-        InlineKeyboardButton("🧾 Required Transactions", callback_data="see_transactions"),
+        InlineKeyboardButton("🧾 Settle Up", callback_data="see_transactions"),
         InlineKeyboardButton("ℹ️ Help", callback_data="help")
     )
     return menu
@@ -221,28 +221,16 @@ def handle_expense_creation(message):
         bot.send_message(chat_id, f"❌ {e}\n\nPlease enter the expense details in the format:\nName, Amount", parse_mode="Markdown")
 
 # Get keyboard of group members
-def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
-    if selected_members is None:
-        selected_members = []
-    
+def get_member_keyboard(chat_id, callback_prefix):
     cursor.execute('SELECT user_id, username FROM members WHERE chat_id = ?', (chat_id,))
     members = cursor.fetchall()
     keyboard = InlineKeyboardMarkup()
-    
     for user_id, username in members:
-        # Add a checkmark to selected members
-        if user_id in selected_members:
-            button_text = f"✅ {username}"
-        else:
-            button_text = username
-            
         callback_data = f"{callback_prefix}{user_id}"
-        keyboard.add(InlineKeyboardButton(button_text, callback_data=callback_data))
-    
+        keyboard.add(InlineKeyboardButton(username, callback_data=callback_data))
     # Add 'Done' button if selecting members
     if callback_prefix == "select_member_":
         keyboard.add(InlineKeyboardButton("✅ Done", callback_data="expense_done"))
-    
     return keyboard
 
 # Handle payer selection
@@ -282,7 +270,7 @@ def add_member_to_expense(call):
     else:
         bot.answer_callback_query(call.id, "Member already added.")
     # Update the message with 'Done' button
-    keyboard = get_member_keyboard(call.message.chat.id, "select_member_", members)
+    keyboard = get_member_keyboard(call.message.chat.id, "select_member_")
     bot.edit_message_reply_markup(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
