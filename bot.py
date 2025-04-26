@@ -465,6 +465,10 @@ def calculate_optimal_transactions(balances):
 @bot.message_handler(func=lambda message: True)
 def get_chat_id(message):
     logging.info("Chat ID: %s", message.chat.id)
+    
+    # Only add users from group or supergroup chats
+    if message.chat.type in ['group', 'supergroup']:
+        add_member_to_group(message)
 
 # Start the bot with infinity polling
 if __name__ == '__main__':
