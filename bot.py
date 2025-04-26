@@ -4,7 +4,7 @@ import sqlite3
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 from telebot import apihelper
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -217,6 +217,7 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     
     cursor.execute('SELECT user_id, username FROM members WHERE chat_id = ?', (chat_id,))
     members = cursor.fetchall()
+    logging.info("yooooo4 members: %s", members)
     keyboard = InlineKeyboardMarkup()
     
     for user_id, username in members:
@@ -231,6 +232,7 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     if callback_prefix == "select_member_":
         keyboard.add(InlineKeyboardButton("✅ Done", callback_data="expense_done"))
     
+    logging.info("yooooo5 keyboard: %s", keyboard)
     return keyboard
 
 # Handle payer selection
@@ -295,7 +297,7 @@ def finalize_expense(call):
             expense['name'],
             expense['amount'],
             expense['payer_id'],
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            get_iran_time()
         ))
 
         expense_id = cursor.lastrowid
@@ -463,11 +465,12 @@ def calculate_optimal_transactions(balances):
 @bot.message_handler(func=lambda message: True)
 def get_chat_id(message):
     logging.info("Chat ID: %s", message.chat.id)
-    
-    if message.chat.type in ['group', 'supergroup']:
-        add_member_to_group(message)
 
 # Start the bot with infinity polling
 if __name__ == '__main__':
     logging.info("Bot is polling...")
     bot.infinity_polling(timeout=20, long_polling_timeout=30)
+
+def get_iran_time():
+    current_time = datetime.utcnow() + timedelta(hours=3, minutes=30)
+    return current_time.strftime("%Y-%m-%d %H:%M:%S")
