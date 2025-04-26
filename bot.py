@@ -217,7 +217,7 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     
     cursor.execute('SELECT user_id, username FROM members WHERE chat_id = ?', (chat_id,))
     members = cursor.fetchall()
-    print(members)
+    logging.info("yooooo4 members: %s", members)
     keyboard = InlineKeyboardMarkup()
     
     for user_id, username in members:
@@ -232,7 +232,7 @@ def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
     if callback_prefix == "select_member_":
         keyboard.add(InlineKeyboardButton("✅ Done", callback_data="expense_done"))
     
-    print(keyboard)
+    logging.info("yooooo5 keyboard: %s", keyboard)
     return keyboard
 
 # Handle payer selection
