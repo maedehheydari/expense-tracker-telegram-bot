@@ -284,6 +284,10 @@ def add_member_to_expense(call):
         reply_markup=keyboard
     )
 
+def get_iran_time():
+    current_time = datetime.utcnow() + timedelta(hours=3, minutes=30)
+    return current_time.strftime("%Y-%m-%d %H:%M:%S")
+
 # Finalize the expense
 def finalize_expense(call):
     user_id = call.from_user.id
@@ -470,7 +474,3 @@ def get_chat_id(message):
 if __name__ == '__main__':
     logging.info("Bot is polling...")
     bot.infinity_polling(timeout=20, long_polling_timeout=30)
-
-def get_iran_time():
-    current_time = datetime.utcnow() + timedelta(hours=3, minutes=30)
-    return current_time.strftime("%Y-%m-%d %H:%M:%S")
