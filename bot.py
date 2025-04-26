@@ -100,7 +100,7 @@ def get_main_menu():
         InlineKeyboardButton("➕ Add Expense", callback_data="add_expense"),
         InlineKeyboardButton("📊 View Balance", callback_data="view_balance"),
         InlineKeyboardButton("📜 Expense History", callback_data="expense_history"),
-        InlineKeyboardButton("🧾 See Transactions", callback_data="see_transactions"),
+        InlineKeyboardButton("🧾 See Required Transactions", callback_data="see_transactions"),
         InlineKeyboardButton("ℹ️ Help", callback_data="help")
     )
     return menu
@@ -116,14 +116,14 @@ def send_help(chat_id):
         "/history - View expense history\n"
         "/help - Show this help message"
     )
-    logging.info("yooooo2 Chat ID: %s", chat_id)
+    logging.info("yooooo2 Chat ID:", chat_id)
     bot.send_message(chat_id, help_text, parse_mode="Markdown", reply_markup=get_main_menu())
 
 # Handle button clicks
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
     chat_id = call.message.chat.id
-    logging.info("yooooo3 Chat ID: %s", chat_id)
+    logging.info("yooooo3 Chat ID:", chat_id)
     data = call.data
 
     if data == "add_expense":
@@ -328,7 +328,7 @@ def get_balances(chat_id):
     for expense in expenses:
         expense_id = expense[0]
         amount = expense[3]
-        payer_id = expense[6]
+        payer_id = expense[4]
         cursor.execute('SELECT member_id FROM expense_members WHERE expense_id = ?', (expense_id,))
         expense_members = cursor.fetchall()
         member_ids = [member_id for (member_id,) in expense_members]
@@ -350,7 +350,7 @@ def show_expense_history(chat_id):
             name = expense[2]
             amount = expense[3]
             payer_id = expense[4]
-            date = expense[5]
+            date = expense[7]
             cursor.execute('SELECT member_id FROM expense_members WHERE expense_id = ?', (expense_id,))
             members = cursor.fetchall()
             member_names = ', '.join([get_username(member_id, chat_id) for (member_id,) in members])
@@ -467,7 +467,7 @@ def calculate_optimal_transactions(balances):
 
 @bot.message_handler(func=lambda message: True)
 def get_chat_id(message):
-    logging.info("yooooo Chat ID: %s", message.chat.id)
+    logging.info("Chat ID: %s", message.chat.id)
 
 # @bot.message_handler(func=lambda message: True)
 # def chat_migration_handler(message):
