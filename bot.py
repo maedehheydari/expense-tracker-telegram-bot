@@ -221,16 +221,28 @@ def handle_expense_creation(message):
         bot.send_message(chat_id, f"❌ {e}\n\nPlease enter the expense details in the format:\nName, Amount", parse_mode="Markdown")
 
 # Get keyboard of group members
-def get_member_keyboard(chat_id, callback_prefix):
+def get_member_keyboard(chat_id, callback_prefix, selected_members=None):
+    if selected_members is None:
+        selected_members = []
+    
     cursor.execute('SELECT user_id, username FROM members WHERE chat_id = ?', (chat_id,))
     members = cursor.fetchall()
     keyboard = InlineKeyboardMarkup()
+    
     for user_id, username in members:
+        # Add a selection icon to selected members
+        if user_id in selected_members:
+            button_text = f"🔵 {username}"  # Blue circle for selected members
+        else:
+            button_text = f"⚪️ {username}"  # White circle for unselected members
+            
         callback_data = f"{callback_prefix}{user_id}"
-        keyboard.add(InlineKeyboardButton(username, callback_data=callback_data))
+        keyboard.add(InlineKeyboardButton(button_text, callback_data=callback_data))
+    
     # Add 'Done' button if selecting members
     if callback_prefix == "select_member_":
         keyboard.add(InlineKeyboardButton("✅ Done", callback_data="expense_done"))
+    
     return keyboard
 
 # Handle payer selection
@@ -262,15 +274,24 @@ def handle_payer_selection(call):
 def add_member_to_expense(call):
     user_id = call.from_user.id
     selected_member_id = int(call.data.split("_")[-1])
-    members = expense_cache[user_id].get('members', [])
-    if selected_member_id not in members:
-        members.append(selected_member_id)
-        expense_cache[user_id]['members'] = members
-        bot.answer_callback_query(call.id, "Member added.")
+    
+    # Initialize members list if it doesn't exist
+    if 'members' not in expense_cache.get(user_id, {}):
+        expense_cache[user_id] = expense_cache.get(user_id, {})
+        expense_cache[user_id]['members'] = []
+    
+    members = expense_cache[user_id]['members']
+    
+    # Toggle selection - remove if already selected, add if not
+    if selected_member_id in members:
+        members.remove(selected_member_id)
+        bot.answer_callback_query(call.id, "Member removed.")
     else:
-        bot.answer_callback_query(call.id, "Member already added.")
-    # Update the message with 'Done' button
-    keyboard = get_member_keyboard(call.message.chat.id, "select_member_")
+        members.append(selected_member_id)
+        bot.answer_callback_query(call.id, "Member added.")
+    
+    # Update the message with updated keyboard showing selections
+    keyboard = get_member_keyboard(call.message.chat.id, "select_member_", members)
     bot.edit_message_reply_markup(
         chat_id=call.message.chat.id,
         message_id=call.message.message_id,
