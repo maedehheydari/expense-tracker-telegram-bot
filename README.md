@@ -18,8 +18,11 @@ A Telegram bot for tracking and splitting expenses in groups.
 ## Commands
 
 - `/start` - Start the bot
-- `/help` - Show help information
-- (Add other commands your bot supports)
+- `/help` - Show help information and other commands
+- `/addexpense` - Add a new expense
+- `/viewbalance` - View current balances
+- `/showtransactions` - View required transactions to settle all balances to zero
+- `/history` - View expense history
 
 ## License
 
